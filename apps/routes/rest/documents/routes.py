@@ -28,39 +28,21 @@ __status__ = "Production"
 __version__ = "1.0.0"
 
 import json
-import time
 
-import pymongo
 from flask import Response
 from flask import request
 from flask_login import login_required
 
 import apps.utils.auth_utils as auth_utils
 import apps.utils.db_utils as db_utils
-from apps.config import Configuration
+
 from apps.models.nosql.Graph import Graph
-from apps.routes.rest.processors import blueprint
+from apps.routes.rest.documents import blueprint
 
 
-@blueprint.route('/rest/api/baseline/processors-releases', methods=['GET'])
-def get_baseline_processors_releases():
-    try:
-        graph = Graph()
-        config_id = Configuration().get_object("configurations")['processors']
-        scen_graph = graph.find({'id': config_id})
-        scen_graph = scen_graph[0]
-        resp = Response(json.dumps(scen_graph, cls=db_utils.AlchemyEncoder), mimetype="application/json", status=200)
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        return resp
-    except Exception as ex:
-        resp = Response(json.dumps({'error': '500'}), mimetype="application/json", status=500)
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        return resp
-
-
-@blueprint.route('/rest/api/processors-releases/<config_id>', methods=['GET'])
+@blueprint.route('/rest/api/documents/<config_id>', methods=['GET'])
 @login_required
-def get_processors_releases(config_id):
+def get_documents(config_id):
     try:
         graph = Graph()
         scen_graph = graph.find({'id': config_id})
@@ -70,9 +52,9 @@ def get_processors_releases(config_id):
         return Response(json.dumps({'error': '500'}), mimetype="application/json", status=500)
 
 
-@blueprint.route('/rest/api/processors-releases', methods=['POST'])
+@blueprint.route('/rest/api/documents', methods=['POST'])
 @login_required
-def add_processor_release():
+def add_document():
     """
     :return:
     :rtype:
@@ -96,19 +78,17 @@ def add_processor_release():
 
         json_data = json.loads(scen_graph['graph'])
 
-        if 'processors_releases' not in json_data:
-            json_data['processors_releases'] = []
+        if 'documents' not in json_data:
+            json_data['documents'] = []
 
-        json_data['processors_releases'].append({
+        json_data['documents'].append({
             'id': db_utils.generate_uuid(),
-            'mission': body['mission'],
-            'satellite_units': body['satellite_units'],
-            'target_ipfs': body['target_ipfs'],
-            'processing_baseline': body['processing_baseline'],
-            'release_date': body['release_date'],
-            'validity_start_date': body['validity_start_date'],
-            'validity_end_date': body['validity_end_date'],
-            'release_notes': body['release_notes']
+            'group': body['group'],
+            'service': body['service'],
+            'code': body['code'],
+            'title': body['title'],
+            'current_version': body['current_version'],
+            'previous_versions': body['previous_versions']
         })
 
         updated_graph_string = json.dumps(json_data)
@@ -124,9 +104,9 @@ def add_processor_release():
         return Response(json.dumps({'error': '500'}), mimetype="application/json", status=500)
 
 
-@blueprint.route('/rest/api/processors-releases', methods=['PUT'])
+@blueprint.route('/rest/api/documents', methods=['PUT'])
 @login_required
-def update_processor_release():
+def update_document():
     """
     :return:
     :rtype:
@@ -150,16 +130,14 @@ def update_processor_release():
 
         json_data = json.loads(scen_graph['graph'])
 
-        for index, processor in enumerate(json_data['processors_releases']):
-            if processor['id'] == body['id']:
-                processor['mission'] = body['mission']
-                processor['satellite_units'] = body['satellite_units']
-                processor['target_ipfs'] = body['target_ipfs']
-                processor['processing_baseline'] = body['processing_baseline']
-                processor['release_date'] = body['release_date']
-                processor['validity_start_date'] = body['validity_start_date']
-                processor['validity_end_date'] = body['validity_end_date']
-                processor['release_notes'] = body['release_notes']
+        for index, doc in enumerate(json_data['documents']):
+            if doc['id'] == body['id']:
+                doc['group'] = body['group']
+                doc['service'] = body['service']
+                doc['code'] = body['code']
+                doc['title'] = body['title']
+                doc['current_version'] = body['current_version']
+                doc['previous_versions'] = body['previous_versions']
 
         updated_graph_string = json.dumps(json_data)
         scen_graph['graph'] = updated_graph_string
@@ -174,9 +152,9 @@ def update_processor_release():
         return Response(json.dumps({'error': '500'}), mimetype="application/json", status=500)
 
 
-@blueprint.route('/rest/api/processors-releases', methods=['DELETE'])
+@blueprint.route('/rest/api/documents', methods=['DELETE'])
 @login_required
-def delete_processor_release():
+def delete_document():
     """
     :return:
     :rtype:
@@ -200,9 +178,9 @@ def delete_processor_release():
 
         json_data = json.loads(scen_graph['graph'])
 
-        for index, processor in enumerate(json_data['processors_releases']):
-            if processor['id'] == body['processor_release_id']:
-                json_data['processors_releases'].remove(processor);
+        for index, doc in enumerate(json_data['documents']):
+            if doc['id'] == body['document_id']:
+                json_data['documents'].remove(doc)
 
         updated_graph_string = json.dumps(json_data)
         scen_graph['graph'] = updated_graph_string
